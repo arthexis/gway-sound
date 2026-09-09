@@ -12,7 +12,12 @@ from pathlib import Path
 from .storage import recordings_root
 
 
-def path(*, when: datetime | None = None, source: str | None = None, suffix: str = ".wav") -> Path:
+def path(
+    *,
+    when: datetime | None = None,
+    source: str | None = None,
+    suffix: str = ".wav",
+) -> Path:
     """Return a sortable archive path for a new recording without creating it."""
     moment = when or datetime.now().astimezone()
     if moment.tzinfo is None:
@@ -27,7 +32,10 @@ def path(*, when: datetime | None = None, source: str | None = None, suffix: str
 
 
 def _safe_source(source: str) -> str:
-    cleaned = "".join(character if character.isalnum() or character in "-_" else "-" for character in source)
+    cleaned = "".join(
+        character if character.isalnum() or character in "-_" else "-"
+        for character in source
+    )
     cleaned = cleaned.strip("-")
     if not cleaned:
         raise ValueError("recording source must contain at least one letter or number")
