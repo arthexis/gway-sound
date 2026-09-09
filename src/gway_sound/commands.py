@@ -5,7 +5,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from . import playback, storage
+from . import control, playback, recording, storage
+from .sources import sources as list_sources
 
 
 def resolve(sound: str) -> str:
@@ -28,6 +29,33 @@ def play(sound: str, wait: bool = True) -> dict[str, object]:
     return playback.play(Path(sound), wait=wait)
 
 
+def record(
+    seconds: float | None = None,
+    source: str | None = None,
+    name: str | None = None,
+    rate: int = 16000,
+    channels: int = 1,
+) -> dict[str, object]:
+    """Record from the default or explicitly selected capture source."""
+    return recording.record(
+        seconds=seconds,
+        source=source,
+        name=name,
+        rate=rate,
+        channels=channels,
+    )
+
+
+def recordings() -> list[str]:
+    """List archived recordings newest first."""
+    return recording.recordings()
+
+
+def sources() -> list[str]:
+    """List available non-monitor capture sources."""
+    return list_sources()
+
+
 def stop() -> dict[str, object]:
-    """Stop the most recently started gway-sound playback process."""
-    return playback.stop()
+    """Stop all active gway-sound playback and recording processes."""
+    return control.stop()
