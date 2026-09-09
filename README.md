@@ -27,3 +27,4 @@ Recordings use the canonical archive under `/var/lib/gway/sound/recordings`. Omi
 ## CI
 
 The repository consumes the shared Arthexis Python CI baseline from `arthexis/ci-base@v1`. The baseline runs Ruff lint/format checks, pytest across supported Python versions, package builds, and clean-install validation.
+
