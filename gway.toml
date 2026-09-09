@@ -1,0 +1,7 @@
+[project]
+name = "sound"
+aliases = ["gway-sound"]
+
+[adapter]
+type = "python"
+module = "gway_sound.commands"
