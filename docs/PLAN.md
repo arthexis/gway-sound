@@ -4,6 +4,129 @@
 
 Make `gway-sound` the single owner of reusable GWAY audio behavior currently split between `gway-lcd-sound` and `gway-jabra-recorder`, without moving LCD display behavior, RFID workflows, or unrelated USB/device-management code.
 
+## Core terminology
+
+`gway-sound` distinguishes two kinds of audio data:
+
+- **sounds** are reusable assets intended to be played repeatedly and addressed by a stable logical name.
+- **recordings** are generated captures, normally timestamped and append-only.
+
+This distinction should remain visible in both the Python API and the CLI.
+
+## Canonical storage
+
+Use the filesystem as the initial storage and index mechanism. Do not introduce SQLite, a manifest database, or mandatory metadata sidecars in PR1.
+
+```text
+/var/lib/gway/sound/
+    sounds/
+        alert.wav
+        success.wav
+        failure.wav
+        startup.wav
+    recordings/
+        2026/
+            09/
+                09/
+                    20260909T054812-0600.wav
+```
+
+Reusable sounds are operational data and should normally live outside the Python package so they can be replaced without publishing a new `gway-sound` release. A tiny packaged fallback asset may be added later if there is a concrete need.
+
+Recording paths should be sortable, timestamped, and collision-resistant. The preferred default naming convention is local time with an explicit UTC offset, for example `20260909T054812-0600.wav`.
+
+Future capture implementations may add source/device information or optional metadata sidecars without changing the basic directory convention.
+
+### Sound resolution
+
+A sound reference may be a logical name or an explicit file path. Resolution precedence should be:
+
+1. explicit path
+2. site/local configured sound directory, when configuration support is added
+3. shared GWAY sound directory (`/var/lib/gway/sound/sounds`)
+4. packaged fallback, if one is introduced later
+
+Examples:
+
+```python
+resolve("alert")
+# -> /var/lib/gway/sound/sounds/alert.wav
+
+resolve("alert.wav")
+# -> /var/lib/gway/sound/sounds/alert.wav, if present
+
+resolve("/home/arthe/custom.wav")
+# -> /home/arthe/custom.wav
+```
+
+## PR1 — basic playback and storage contract
+
+PR1 establishes the smallest useful, hardware-independent public contract for the package. It should define canonical sound/recording locations, sound resolution, enumeration, basic playback, and tests.
+
+### Initial Python API
+
+```python
+def resolve(sound: str | Path) -> Path:
+    ...
+
+
+def path(name: str) -> Path:
+    ...
+
+
+def sounds() -> list[str]:
+    ...
+
+
+def play(sound: str | Path, *, wait: bool = True) -> None:
+    ...
+
+
+def stop() -> None:
+    ...
+```
+
+Avoid exposing a function named `list`, since it shadows the Python builtin. Use `sounds()` instead.
+
+PR1 should also define the recording-path convention and may expose a path generator such as:
+
+```python
+recording.path()
+```
+
+The path helper does **not** imply recording/capture support in PR1. It only establishes where future captures belong and how their filenames are generated.
+
+### Initial CLI surface
+
+The CLI should mirror the Python concepts cleanly:
+
+```bash
+gway sound play alert
+gway sound play /tmp/test.wav
+gway sound stop
+gway sound sounds
+gway sound path alert
+```
+
+Later capture work can naturally extend this with `gway sound record` and `gway sound recordings` without changing the PR1 terminology.
+
+### Explicit PR1 exclusions
+
+Do not add the following in PR1:
+
+- capture/recording implementation
+- volume control
+- looping
+- playback-device selection
+- Jabra-specific handling
+- noise monitoring
+- GPIO mute controls
+- radio/media helpers
+- Piper/TTS
+- a database or manifest index
+
+These features should not force a backend abstraction before the requirements from the migrated code are understood.
+
 ## Source inventory
 
 ### From `gway-lcd-sound`
@@ -70,28 +193,36 @@ Prefer generic names (`sound-*`, `audio-*`, `noise-*`, `record-*`, `tts-*`) in n
    - enable `ci-base@v1`
    - keep the initial package hardware-independent so CI can run on GitHub-hosted runners
 
-2. **Playback extraction**
-   - copy sound-only scripts, tests, systemd units, udev rules, templates, and docs from `gway-lcd-sound`
-   - split shared playback code from command wrappers
-   - preserve legacy command names as delegating wrappers
-   - verify LCD services no longer own or lock audio resources unnecessarily
+2. **PR1: playback/storage contract**
+   - establish canonical `sounds` and `recordings` storage locations
+   - implement logical-name/path resolution and sound enumeration
+   - implement basic `play` and `stop` behavior
+   - expose recording path generation without implementing capture
+   - add hardware-independent tests for resolution, storage paths, and playback command behavior
+   - keep backend-specific and advanced playback features out of scope
 
 3. **Capture/noise extraction**
    - copy recorder, archive, noise-watch, alarm-toggle, and related tests/docs from `gway-jabra-recorder`
    - separate generic ALSA/PipeWire device selection from Jabra defaults
    - make device identifiers configurable rather than embedding host-specific values
+   - use the recording storage/path contract established in PR1
 
-4. **Speech extraction**
+4. **Playback feature extraction**
+   - migrate event-sound polling, hotplug playback, compatibility wrappers, GPIO mute, and radio/media helpers from `gway-lcd-sound`
+   - preserve legacy command names as delegating wrappers where needed
+   - verify LCD services no longer own or lock audio resources unnecessarily
+
+5. **Speech extraction**
    - move Piper daemon and `say-piper`
    - expose a generic TTS command/API while retaining compatibility wrappers
 
-5. **Service consolidation**
+6. **Service consolidation**
    - normalize systemd unit names under `gway-sound`
    - define ownership of playback vs capture processes and restart policy
    - migrate boot-stagger handling only where startup ordering still requires it
    - ensure service units do not require LCD or RFID projects to be installed
 
-6. **Field migration**
+7. **Field migration**
    - install `gway-sound` beside the old projects on a test GWAY node
    - stop legacy sound/recorder services before enabling replacement units to avoid competing for the same audio device
    - validate playback, mute, hotplug alerts, recording, archive inspection, noise watch, alarm mode, and TTS
