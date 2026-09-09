@@ -5,7 +5,9 @@ from gway_sound import capture
 
 def test_command_prefers_pw_record(monkeypatch, tmp_path: Path) -> None:
     target = tmp_path / "out.wav"
-    monkeypatch.setattr(capture.shutil, "which", lambda name: "/usr/bin/pw-record" if name == "pw-record" else None)
+    monkeypatch.setattr(
+        capture.shutil, "which", lambda name: "/usr/bin/pw-record" if name == "pw-record" else None
+    )
 
     command = capture.command(target, source="mic.source", rate=16000, channels=1)
 
@@ -23,7 +25,9 @@ def test_command_prefers_pw_record(monkeypatch, tmp_path: Path) -> None:
 
 def test_command_falls_back_to_parec(monkeypatch, tmp_path: Path) -> None:
     target = tmp_path / "out.wav"
-    monkeypatch.setattr(capture.shutil, "which", lambda name: "/usr/bin/parec" if name == "parec" else None)
+    monkeypatch.setattr(
+        capture.shutil, "which", lambda name: "/usr/bin/parec" if name == "parec" else None
+    )
 
     command = capture.command(target, source=None, rate=48000, channels=2)
 
