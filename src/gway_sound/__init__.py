@@ -1,7 +1,8 @@
 """Shared audio helpers for GWAY field nodes."""
 
 from . import recording
-from .playback import play, stop
+from .control import stop
+from .playback import play
 from .storage import path, resolve, sounds
 
 __all__ = ["__version__", "path", "play", "recording", "resolve", "sounds", "stop"]
