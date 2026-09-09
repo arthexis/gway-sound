@@ -33,8 +33,7 @@ def path(
 
 def _safe_source(source: str) -> str:
     cleaned = "".join(
-        character if character.isalnum() or character in "-_" else "-"
-        for character in source
+        character if character.isalnum() or character in "-_" else "-" for character in source
     )
     cleaned = cleaned.strip("-")
     if not cleaned:

@@ -46,7 +46,9 @@ def _player_command(sound_path: Path) -> list[str]:
         if executable:
             command[0] = executable
             return command
-    raise RuntimeError("no supported audio player found (pw-play, aplay, paplay, ffplay, mpv, play)")
+    raise RuntimeError(
+        "no supported audio player found (pw-play, aplay, paplay, ffplay, mpv, play)"
+    )
 
 
 def _write_state(process: subprocess.Popen[bytes], command: list[str]) -> None:
